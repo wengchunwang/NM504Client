@@ -40,7 +40,16 @@ NM504Client 程式一直沒有自動更新功能，今（114）年公司 NM504Cl
 ### 3. 執行腳本
 以系統管理員權限開啟 PowerShell：
 ```powershell
-.\NM504ClientUpdater_public.ps1 -SimulationMode
+powershell.exe -NoProfile -ExecutionPolicy Bypass 
+-File "\\AD_SERVER\SYSVOL\script\NM504ClientUpdater_public.ps1" 
+-EXE114 "C:\Program Files\NM114\NM114.exe" 
+-EXE106 "C:\Program Files\NM106\NM106.exe" 
+-DirS1 "\\NAS_SERVER\Software" 
+-DirS2 "\\AD_SERVER\SYSVOL\scripts" 
+-TargetDate "2025-09-29" 
+-DirLog "\\LOG_SERVER\LogFiles" 
+-Installer "1141001_x64.exe" 
+-SimulationMode
 ```
 模擬模式下不會實際複製或安裝，只會顯示日誌。正式執行時移除 `-SimulationMode`。
 
