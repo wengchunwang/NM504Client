@@ -61,6 +61,12 @@ EventLog 也會產生資訊，EventSource 為 `NM504ClientUpdater`。
 ### 5. 注意事項
 
 - 原始檔為 RAR ，先解壓為 EXE 執行檔，並在同一目錄下建立 SHA256 檢查檔。
+  `$InstallerPath = ".\1141001_x64.exe"
+$Hash = (Get-FileHash $InstallerPath -Algorithm SHA256).Hash
+$HashFile = "$InstallerPath.sha256"
+Set-Content -Path $HashFile -Value $Hash -Encoding UTF8
+Write-Host "SHA256 已生成: $HashFile"
+`
 - SHA256 需依實際安裝檔生成，或在模擬模式下忽略
 - 確認磁碟空間至少 500MB，因為安裝檔有 200MB，原本有寫檢查確認磁碟空間的，應該是特例，所以刪除檢查磁碟空間程式碼（ `if ($drive.Free -lt 500MB) { Write-Log "磁碟空間不足 (剩餘：$($drive.Free/1MB)MB)" "ERROR"; exit $EXIT_EXCEPTION }` ）
 - 更新過程中會建立鎖定檔避免重複執行
