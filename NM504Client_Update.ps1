@@ -2,7 +2,7 @@
 #Requires -RunAsAdministrator
 <#
 .SYNOPSIS
-    NM504 Client 更新安裝腳本範例
+    NM504 Client 更新安裝腳本範例 (適合公開)
 .DESCRIPTION
     此腳本包含：
     - 版本檢查
@@ -16,10 +16,10 @@
 param(
     [string]$Ver = "2025.1.1.001",
     [string]$GPO = "Powershell",
-    [string]$EXE114 = "C:\Path\To\NM114.exe",       # 範例路徑
-    [string]$EXE106 = "C:\Path\To\NM106.exe",       # 範例路徑
-    [string]$DirS1 = "\\<NAS_SERVER>\Software",     # 安裝檔來源 1 (NAS)
-    [string]$DirS2 = "\\<AD_SERVER>\SYSVOL\scripts",# 安裝檔來源 2 (AD)
+    [string]$EXE114 = "C:\Path\To\NM114.exe",
+    [string]$EXE106 = "C:\Path\To\NM106.exe",
+    [string]$DirS1 = "\\<NAS_SERVER>\Software",
+    [string]$DirS2 = "\\<AD_SERVER>\SYSVOL\scripts",
     [string]$TargetDate = "2025-01-01",
     [string]$DirLog = "\\<LOG_SERVER>\LogFiles\NM114-504Client", 
     [string]$Installer = "單機版_YYYMMDD_x64.exe",
@@ -31,14 +31,12 @@ param(
     [switch]$SimulationMode
 )
 
-# ===== ExitCode 定義 =====
 $EXIT_SUCCESS = 0
 $EXIT_NO_UPDATE = 10
 $EXIT_COPY_FAIL = 20
 $EXIT_INSTALL_FAIL = 30
 $EXIT_EXCEPTION = 99
 
-# ===== 初始化 =====
 $EventSource = "NM504ClientUpdater"
 
 if ($SimulationMode) {
@@ -50,22 +48,18 @@ if ($SimulationMode) {
 $LocalTempDir = "$env:SystemDrive\TEMP"
 if (-not (Test-Path $LocalTempDir)) { New-Item -Path $LocalTempDir -ItemType Directory -Force | Out-Null }
 
-# ===== 日期解析 =====
 try { $targetDateObj = [datetime]::ParseExact($TargetDate,'yyyy-MM-dd',$null) } 
 catch { Write-Host "錯誤：日期格式無效 ($TargetDate)" -ForegroundColor Red; exit $EXIT_EXCEPTION }
 
-# ===== 路徑定義 =====
 $InstallerS1 = Join-Path $DirS1 $Installer
 $InstallerS2 = Join-Path $DirS2 $Installer
 $LogFile = Join-Path $DirLog ("${env:COMPUTERNAME}_$(Get-Date -Format 'yyyyMMdd').log")
 $localInstallerPath = Join-Path $LocalTempDir $Installer
 
-# ===== EventLog來源建立 =====
 if (-not ([System.Diagnostics.EventLog]::SourceExists($EventSource))) {
     try { [System.Diagnostics.EventLog]::CreateEventSource($EventSource,"Application") } catch {}
 }
 
-# ===== 日誌函數 =====
 function Write-Log {
     param([string]$Message, [string]$Type="INFO")
     if ($SimulationMode -and $Type -ne "ERROR") { $Type = "SIMULATE:$Type" }
@@ -88,7 +82,6 @@ function Write-Log {
     } catch {}
 }
 
-# ===== 複製公用桌面捷徑函數 =====
 function Copy-PublicDesktopShortcut {
     param(
         [string]$SourceDirectory,
@@ -115,7 +108,6 @@ function Copy-PublicDesktopShortcut {
     }
 }
 
-# ===== 鎖定檔管理 =====
 $LockFile = Join-Path $LocalTempDir "NM504Client_Update.lock"
 if (Test-Path $LockFile) {
     Write-Log "偵測到其他更新程序 (LockFile: $LockFile)，略過。" "WARN"; exit $EXIT_NO_UPDATE
@@ -131,12 +123,10 @@ if (-not $SimulationMode) {
     Write-Log "模擬模式：跳過建立鎖定檔" "SIMULATE:INFO"
 }
 
-# ===== 更新檢查與安裝邏輯範例 =====
 try {
     Write-Log "=== 更新檢查開始 ==="
     Write-Log "GPO=$GPO Ver=$Ver"
 
-    # 版本檢查
     $clientEXEPath=$null;$clientVersion=$null
     if (Test-Path $EXE114) { $clientEXEPath=$EXE114;$clientVersion="NM114"; Write-Log "偵測到新版 NM114" }
     elseif (Test-Path $EXE106) { $clientEXEPath=$EXE106;$clientVersion="NM106"; Write-Log "偵測到舊版 NM106" }
@@ -145,12 +135,10 @@ try {
     $fileDate=(Get-Item $clientEXEPath).LastWriteTime
     Write-Log "目前 EXE 修改日期：$fileDate"
 
-    # 判斷是否更新
     $needsUpdate=$false
     if ($clientVersion -eq "NM106") { Write-Log "舊版 NM106，強制更新" "WARN"; $needsUpdate=$true }
     elseif ($fileDate -lt $targetDateObj) { Write-Log "版本較舊 ($fileDate < $TargetDate)，更新中"; $needsUpdate=$true }
 
-    # 選擇安裝來源
     $sourceInstallerPath=$null
     if ((Test-Path -Path $InstallerS1 -PathType Leaf)) { $sourceInstallerPath=$InstallerS1 }
     elseif ((Test-Path -Path $InstallerS2 -PathType Leaf)) { $sourceInstallerPath=$InstallerS2 }
@@ -166,33 +154,25 @@ try {
 
     if (-not $sourceInstallerPath) { Write-Log "找不到安裝來源 (S1/S2)" "ERROR"; exit $EXIT_COPY_FAIL }
 
-    # SHA256 驗證範例
     $hashFile = "$sourceInstallerPath.sha256"
     $expectedHash = "<SHA256_HASH_PLACEHOLDER>"
 
-    # 複製安裝檔
     Write-Log "複製安裝檔至 $localInstallerPath"
-    if ($SimulationMode) {
-        Write-Log "模擬模式：跳過 Copy-Item。假設複製成功。" "SIMULATE:INFO"
-    } else {
-        Copy-Item -Path $sourceInstallerPath -Destination $localInstallerPath -Force -ErrorAction Stop
-    }
+    if ($SimulationMode) { Write-Log "模擬模式：跳過 Copy-Item。假設複製成功。" "SIMULATE:INFO" }
+    else { Copy-Item -Path $sourceInstallerPath -Destination $localInstallerPath -Force -ErrorAction Stop }
 
-    # 執行安裝
     Write-Log "執行安裝程式：$localInstallerPath /S"
     if ($SimulationMode) { Start-Sleep -Seconds 1; $proc = New-Object PSObject -Property @{ ExitCode = 0 } }
     else { $proc=Start-Process -FilePath $localInstallerPath -ArgumentList "/S" -Wait -PassThru }
 
     if ($proc.ExitCode -ne 0) { Write-Log "安裝失敗，代碼 $($proc.ExitCode)" "ERROR"; exit $EXIT_INSTALL_FAIL }
 
-    # 安裝後捷徑補救
     $SourceShortcutDir = Split-Path $sourceInstallerPath -Parent
     Copy-PublicDesktopShortcut -SourceDirectory $SourceShortcutDir -TargetDirectory $PublicDesktop -ShortcutFile $ShortcutName -SimulationMode:$SimulationMode
 
 } catch { 
     Write-Log "執行例外：$($_.Exception.Message)" "ERROR"; exit $EXIT_EXCEPTION 
 } finally {
-    # 清理鎖定與暫存
     if (Test-Path $LockFile) {
         if (-not $SimulationMode) { Remove-Item $LockFile -Force -ErrorAction SilentlyContinue; Write-Log "移除鎖定檔" "DEBUG" }
         else { Write-Log "模擬模式：跳過 Remove-Item 鎖定檔" "SIMULATE:DEBUG" }
