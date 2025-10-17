@@ -100,21 +100,22 @@ NM504Client 程式一直沒有自動更新功能，今（114）年公司 NM504Cl
 ---
 
 ## 注意事項
-- 確保安裝來源可存取，否則會中止。
-- 原始檔為 RAR ，先解壓為 EXE 執行檔，並在同一目錄下建立 SHA256 檢查檔。
+- 確保安裝來源 (-DirS1, \-DirS2) 可存取，否則會中止。
+- 原始檔為 RAR ，先解壓為 EXE 執行檔，並在同一目錄下建立 SHA256 檢查檔。 **SHA256 雜湊驗證：** 建議在安裝檔 (例如 單機版_YYYMMDD_x64.exe) 旁邊放置一個同名但副檔名為 .sha256 的檔案，內容為正確的 SHA256 雜湊值。
+- SHA256 需依實際安裝檔生成，或在模擬模式下忽略。若找不到 .sha256 檔，將嘗試自動生成（此時網路共享需有寫入權限）。
+- 產成 SHA256 檢查檔範例：
   `$InstallerPath = ".\1141001_x64.exe"
 $Hash = (Get-FileHash $InstallerPath -Algorithm SHA256).Hash
 $HashFile = "$InstallerPath.sha256"
 Set-Content -Path $HashFile -Value $Hash -Encoding UTF8
 Write-Host "SHA256 已生成: $HashFile"
 `
-- SHA256 需依實際安裝檔生成，或在模擬模式下忽略
-- 確認磁碟空間至少 500MB，因為安裝檔有 200MB，原本有寫檢查確認磁碟空間的，應該是特例，所以刪除檢查磁碟空間程式碼（ `if ($drive.Free -lt 500MB) { Write-Log "磁碟空間不足 (剩餘：$($drive.Free/1MB)MB)" "ERROR"; exit $EXIT_EXCEPTION }` ）
 - 更新過程中會建立鎖定檔避免重複執行
 - 公用桌面捷徑需對所有使用者可寫（這是系統預設）
 - 模擬模式下不會進行實際檔案操作或安裝，僅做流程驗證。
 - 確保 PowerShell 執行政策允許執行 (`RemoteSigned` 或 `Bypass`)。
 - 推薦透過 GPO 或排程任務自動部署。
+- **磁碟空間：** 程式碼內建檢查機制，確保本機暫存目錄所在磁碟區至少有 **500MB** 剩餘空間，否則將中止更新。
 
 ---
 
@@ -131,5 +132,5 @@ Write-Host "SHA256 已生成: $HashFile"
 
 ## 更新歷史
 - **2025-10-01.001**: 初版發布
-- **2025-10-17.011**: 支援自動更新與捷徑維護
+- **2025-10-17.011**: 支援自動更新、捷徑維護，並優化了參數傳遞、日誌記錄及 LockFile 清理邏輯。
 
